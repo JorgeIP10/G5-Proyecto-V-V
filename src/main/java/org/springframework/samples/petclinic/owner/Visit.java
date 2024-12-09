@@ -62,6 +62,9 @@ public class Visit extends BaseEntity {
 	}
 
 	public void setDescription(String description) {
+		if (description == null || description.isBlank()) {
+			throw new IllegalArgumentException("Description cannot be blank");
+		}
 		this.description = description;
 	}
 
