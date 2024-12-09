@@ -156,6 +156,38 @@
 
   <build>
     <plugins>
+        <plugin>
+      <groupId>org.apache.maven.plugins</groupId>
+      <artifactId>maven-surefire-report-plugin</artifactId>
+      <version>3.1.2</version> <!-- Usa la última versión disponible -->
+      <executions>
+          <execution>
+              <id>generate-surefire-report</id>
+              <phase>verify</phase> <!-- Genera los reportes después de ejecutar las pruebas -->
+              <goals>
+                  <goal>report-only</goal>
+              </goals>
+          </execution>
+      </executions>
+        </plugin>
+<plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-surefire-plugin</artifactId>
+    <version>3.1.2</version> <!-- Usa la última versión disponible -->
+    <configuration>
+        <!-- Configuración opcional, por ejemplo: -->
+        <includes>
+            <include>**/Test*.java</include>
+            <include>**/*Test.java</include>
+            <include>**/*Tests.java</include>
+            <include>**/*TestCase.java</include>
+        </includes>
+        <excludes>
+            <exclude>**/integration/**</exclude> <!-- Si deseas excluir pruebas específicas -->
+        </excludes>
+    </configuration>
+</plugin>
+
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-enforcer-plugin</artifactId>
