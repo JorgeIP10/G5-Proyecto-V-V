@@ -35,9 +35,8 @@ public class FindOwnerFunctionalTest {
 
 	@Test
 	public void findOwnerFunctional() {
-		driver.get("http://localhost:8081/");
+		driver.get("http://localhost:8081/owners/find");
 		driver.manage().window().setSize(new Dimension(1920, 982));
-		driver.findElement(By.cssSelector(".nav-item:nth-child(2) > .nav-link")).click();
 		driver.findElement(By.id("lastName")).click();
 		driver.findElement(By.id("lastName")).sendKeys("smith");
 		driver.findElement(By.cssSelector(".btn:nth-child(1)")).click();
