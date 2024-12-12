@@ -11,6 +11,8 @@ import org.openqa.selenium.remote.RemoteWebDriver;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.Dimension;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.chrome.ChromeOptions;
+
 import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
@@ -28,15 +30,12 @@ public class AddPetFunctionalTest {
 
 	private WebDriver driver;
 
-	private Map<String, Object> vars;
-
-	JavascriptExecutor js;
-
 	@BeforeEach
 	public void setUp() {
-		driver = new ChromeDriver();
-		js = (JavascriptExecutor) driver;
-		vars = new HashMap<String, Object>();
+		ChromeOptions options = new ChromeOptions();
+		options.addArguments("--headless");
+
+		driver = new ChromeDriver(options);
 	}
 
 	@AfterEach
