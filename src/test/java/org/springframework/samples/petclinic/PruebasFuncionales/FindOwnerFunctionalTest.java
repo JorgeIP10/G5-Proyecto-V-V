@@ -23,7 +23,12 @@ public class FindOwnerFunctionalTest {
 
 	@BeforeEach
 	public void setUp() {
-		driver = new ChromeDriver();
+		ChromeOptions options = new ChromeOptions();
+		options.addArguments("--headless");
+		options.addArguments("--no-sandbox");
+		options.addArguments("--disable-dev-shm-usage");
+		options.addArguments("--remote-debugging-port=9222"); // Asegura la comunicación
+		driver = new ChromeDriver(options);
 		js = (JavascriptExecutor) driver;
 		vars = new HashMap<>();
 	}
