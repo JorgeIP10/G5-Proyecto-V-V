@@ -1,0 +1,45 @@
+FROM jenkins/jenkins:latest
+
+USER root
+
+# Instalar Java 17
+RUN apt-get update && \
+    apt-get install -y openjdk-17-jdk wget curl unzip apt-transport-https software-properties-common && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+ENV PATH="$JAVA_HOME/bin:$PATH"
+
+# Instalar Docker dentro del contenedor
+RUN apt-get update && \
+    apt-get install -y docker.io && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Asegurarse de que el usuario Jenkins pueda usar Docker
+RUN usermod -aG docker jenkins
+
+# Instalar dependencias necesarias para ejecutar Chrome en modo headless
+RUN apt-get update && \
+    apt-get install -y \
+    libgconf-2-4 \
+    libnss3 \
+    libxss1 \
+    libappindicator3-1 \
+    libasound2 \
+    libx11-xcb1 \
+    libgbm1 \
+    && apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Instalar Maven manualmente
+RUN curl -O https://apache.osuosl.org/maven/maven-3/3.9.4/binaries/apache-maven-3.9.4-bin.tar.gz && \
+    tar -xzf apache-maven-3.9.4-bin.tar.gz -C /opt && \
+    rm apache-maven-3.9.4-bin.tar.gz
+
+ENV MAVEN_HOME=/opt/apache-maven-3.9.4
+ENV PATH="$MAVEN_HOME/bin:$PATH"
+
+# Establecer usuario final
+USER jenkins
