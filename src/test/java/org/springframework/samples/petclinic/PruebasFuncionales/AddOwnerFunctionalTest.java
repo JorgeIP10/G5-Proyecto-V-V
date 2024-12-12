@@ -47,9 +47,8 @@ public class AddOwnerFunctionalTest {
 
 	@Test
 	public void addOwnerFunctional() throws InterruptedException {
-		driver.get("http://localhost:8081/");
+		driver.get("http://localhost:8081/owners/find");
 		driver.manage().window().setSize(new Dimension(1920, 982));
-		driver.findElement(By.cssSelector(".nav-item:nth-child(2) span:nth-child(2)")).click();
 		driver.findElement(By.linkText("Add Owner")).click();
 		driver.findElement(By.id("firstName")).click();
 		driver.findElement(By.id("firstName")).sendKeys("Jim");
