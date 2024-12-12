@@ -137,10 +137,32 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.testcontainers</groupId>
+      <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
+      <version>5.9.3</version>
       <scope>test</scope>
     </dependency>
+    <!--  Dependencia de Selenium  -->
+    <dependency>
+      <groupId>org.seleniumhq.selenium</groupId>
+      <artifactId>selenium-java</artifactId>
+      <version>${selenium.version}</version>
+      <!--  Usa la versión más reciente  -->
+    </dependency>
+    <!--  Dependencia para WebDriverManager (facilita la configuración del driver)  -->
+    <dependency>
+      <groupId>io.github.bonigarcia</groupId>
+      <artifactId>webdrivermanager</artifactId>
+      <version>5.5.3</version>
+    </dependency>
+    <dependency>
+      <groupId>org.hamcrest</groupId>
+      <artifactId>hamcrest</artifactId>
+      <version>3.0</version>
+      <scope>test</scope>
+    </dependency>
+
+
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>mysql</artifactId>
@@ -156,38 +178,6 @@
 
   <build>
     <plugins>
-        <plugin>
-      <groupId>org.apache.maven.plugins</groupId>
-      <artifactId>maven-surefire-report-plugin</artifactId>
-      <version>3.1.2</version> <!-- Usa la última versión disponible -->
-      <executions>
-          <execution>
-              <id>generate-surefire-report</id>
-              <phase>verify</phase> <!-- Genera los reportes después de ejecutar las pruebas -->
-              <goals>
-                  <goal>report-only</goal>
-              </goals>
-          </execution>
-      </executions>
-        </plugin>
-<plugin>
-    <groupId>org.apache.maven.plugins</groupId>
-    <artifactId>maven-surefire-plugin</artifactId>
-    <version>3.1.2</version> <!-- Usa la última versión disponible -->
-    <configuration>
-        <!-- Configuración opcional, por ejemplo: -->
-        <includes>
-            <include>**/Test*.java</include>
-            <include>**/*Test.java</include>
-            <include>**/*Tests.java</include>
-            <include>**/*TestCase.java</include>
-        </includes>
-        <excludes>
-            <exclude>**/integration/**</exclude> <!-- Si deseas excluir pruebas específicas -->
-        </excludes>
-    </configuration>
-</plugin>
-
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-enforcer-plugin</artifactId>
@@ -201,8 +191,8 @@
               <rules>
                 <requireJavaVersion>
                   <message>This build requires at least Java ${java.version},
-                                        update your JVM, and
-                                        run the build again</message>
+                    update your JVM, and
+                    run the build again</message>
                   <version>${java.version}</version>
                 </requireJavaVersion>
               </rules>
@@ -250,7 +240,7 @@
               <configLocation>src/checkstyle/nohttp-checkstyle.xml</configLocation>
               <sourceDirectories>${basedir}</sourceDirectories>
               <includes>**/*</includes>
-              <excludes>**/.git/**/*,**/.idea/**/*,**/target/**/,**/.flattened-pom.xml,**/*.class</excludes>
+              <excludes>**/.git/**/*,**/.idea/**/*,**/coberturaPruebasUnitarias-Report.pdf,**/target/**/,**/.flattened-pom.xml,**/*.class</excludes>
               <propertyExpansion>config_loc=${basedir}/src/checkstyle/</propertyExpansion>
             </configuration>
           </execution>
