@@ -30,45 +30,107 @@ El pipeline está diseñado para ejecutarse en Jenkins y automatizar las etapas 
      ```groovy
      pipeline {
          agent any
+         tools {
+             jdk 'JAVA'
+             maven 'maven'
+         }
+         environment {
+             SCANNER_HOME = tool 'sonar-scanner'
+         }
          stages {
-             stage('Build') {
+             stage("Git Checkout") {
                  steps {
-                     sh 'mvn clean install'
+                     git branch: 'desarrollo', url: 'https://github.com/JorgeIP10/G5-Proyecto-VyV.git'
                  }
              }
-             stage('Code Analysis') {
+             stage("Build with Maven") {
                  steps {
-                     withSonarQubeEnv('SonarQube') {
-                         sh 'mvn sonar:sonar'
+                     sh "mvn clean compile"
+                 }
+             }
+             stage("Unit Tests") {
+                 steps {
+                     sh "mvn -Dtest=*Tests test"
+                 }
+             }
+             stage("Functional Tests") {
+                 steps {
+                     sh "mvn -Dtest=*FunctionalTest test"
+                 }
+             }
+             stage("SonarQube Analysis") {
+                 steps {
+                     sh """
+                         $SCANNER_HOME/bin/sonar-scanner \
+                         -Dsonar.projectKey=G5:PetClinic\
+                         -Dsonar.sources=src/main/java \
+                         -Dsonar.java.binaries=target/classes \
+                         -Dsonar.host.url=http://localhost:9000 \
+                         -Dsonar.login=squ_a1bbdd2f96c074d2b0c77e31df7a5a213c599b88
+                     """
+                 }
+             }
+             stage("ZAP test") {
+                 steps {
+                     script {
+                         sh "/opt/zap/zap.sh -cmd -port 8090 -quickurl http://localhost:8081/ -quickprogress -quickout /var/lib/jenkins/cjuro/zapReport.html"
+                     }
+                 }
+                 post {
+                     success {
+                         publishHTML([
+                             target: [
+                                 reportName: 'ZAP Security Report',
+                                 reportDir: '/var/lib/jenkins/cjuro',
+                                 reportFiles: 'zapReport.html',
+                                 keepAll: true,
+                                 alwaysLinkToLastBuild: true,
+                                 allowMissing: false,
+                                 escapeUnderscores: false
+                             ]
+                         ])
                      }
                  }
              }
-             stage('Unit Tests') {
+
+             stage("Code Coverage with JaCoCo") {
                  steps {
-                     sh 'mvn test'
-                     junit '**/target/surefire-reports/*.xml'
+                     sh "mvn jacoco:prepare-agent test jacoco:report"
+                 }
+                 post {
+                     success {
+                         jacoco(
+                             execPattern: '**/target/jacoco.exec',
+                             classPattern: '**/target/classes',
+                             sourcePattern: '**/src/main/java',
+                             inclusionPattern: '*/.class',
+                             exclusionPattern: '*/*Test',
+                             minimumInstructionCoverage: '80',
+                             minimumBranchCoverage: '70',
+                             changeBuildStatus: true
+                         )
+                     }
                  }
              }
-             stage('Functional Tests') {
+             stage("Performance Tests with JMeter") {
                  steps {
-                     sh 'java -jar selenium-tests.jar'
+                     sh """
+                         /opt/jmeter/bin/jmeter -j jmeter.save.saveservice.output_format=xml -n -t /var/lib/jenkins/cjuro/petclinic_testplan.jmx -l /var/lib/jenkins/cjuro/report.jtl
+                     """
+                 }
+                 post {
+                     success {
+                         perfReport(
+                             sourceDataFiles: "/var/lib/jenkins/cjuro/report.jtl",
+                             failBuildIfNoResultFile: true
+                         )
+                     }
                  }
              }
-             stage('Performance Tests') {
-                 steps {
-                     sh 'jmeter -n -t test.jmx -l results.jtl'
-                 }
-             }
-             stage('Security Tests') {
-                 steps {
-                     sh 'zap-baseline.py -t http://localhost:8080 -r report.html'
-                 }
-             }
-             stage('Deployment') {
-                 steps {
-                     sh 'docker build -t my-app .'
-                     sh 'docker run -d -p 8080:8080 my-app'
-                 }
+         }
+         post {
+             always {
+                 junit '*/target/surefire-reports/.xml'
              }
          }
      }
@@ -91,38 +153,52 @@ El pipeline está definido en un archivo de configuración que incluye todos los
 
 ### Comandos Clave
 
-- **Análisis del código**:
-  Realiza un análisis estático del código fuente utilizando SonarQube.
+- **Git Checkout**:
+  Para clonar el repositorio y verifica el branch de desarrollo.
   ```bash
-  mvn sonar:sonar
+  git clone -b desarrollo https://github.com/JorgeIP10/G5-Proyecto-VyV.git
   ```
-- **Pruebas unitarias**:
-  Ejecuta pruebas unitarias para verificar la funcionalidad de las clases y métodos.
+
+- **Build**:
+  Para compilar el código fuente utilizando Maven.
   ```bash
-  mvn test
+  mvn clean compile
   ```
-- **Pruebas funcionales**:
-  Ejecuta pruebas funcionales que validan el comportamiento completo del sistema.
+
+- **Unit Tests**:
+  Para ejecutar pruebas unitarias con Maven.
   ```bash
-  java -jar selenium-tests.jar
+  mvn -Dtest=*Tests test
   ```
-- **Pruebas de rendimiento**:
-  Evalúa el desempeño del sistema bajo diferentes condiciones de carga.
+
+- **Functional Tests**:
+  Para ejecutar pruebas funcionales específicas.
   ```bash
-  jmeter -n -t test.jmx -l results.jtl
+  mvn -Dtest=*FunctionalTest test
   ```
-- **Pruebas de seguridad**:
-  Identifica vulnerabilidades potenciales mediante OWASP ZAP.
+
+- **Análisis de SonarQube**:
+  Para realizar un análisis estático del código con SonarQube.
   ```bash
-  zap-baseline.py -t http://localhost:8080 -r report.html
+  sonar-scanner -Dsonar.projectKey=G5:PetClinic -Dsonar.sources=src/main/java -Dsonar.java.binaries=target/classes -Dsonar.host.url=http://localhost:9000 -Dsonar.login=<token>
   ```
-- **Despliegue**:
-  Construye una imagen Docker e implementa la aplicación en un contenedor.
+
+- **ZAP Test**:
+  Para ejecutar pruebas de seguridad automáticas con OWASP ZAP.
   ```bash
-  docker build -t my-app .
-  docker run -d -p 8080:8080 my-app
+  /opt/zap/zap.sh -cmd -port 8090 -quickurl http://localhost:8081/ -quickprogress -quickout zapReport.html
+  ```
+
+- **Cobertura de Código con JaCoCo**:
+  Para generar reportes de cobertura del código.
   ```bash
-  mvn clean install
+  mvn jacoco:prepare-agent test jacoco:report
+  ```
+
+- **Pruebas de Rendimiento con JMeter**:
+  Para realizar pruebas de carga utilizando JMeter.
+  ```bash
+  /opt/jmeter/bin/jmeter -j jmeter.save.saveservice.output_format=xml -n -t petclinic_testplan.jmx -l report.jtl
   ```
 
 ## Resultados del Análisis del Código
