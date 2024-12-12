@@ -3,6 +3,7 @@ package org.springframework.samples.petclinic.PruebasFuncionales;
 // Edita el 1er Owner registrado - LA PRUEBA SI FUNCIONA
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.remote.RemoteWebDriver;
