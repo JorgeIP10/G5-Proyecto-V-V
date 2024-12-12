@@ -1,111 +1,245 @@
-# Spring PetClinic Sample Application 
+# Proyecto: Pipeline de Pruebas para Spring PetClinic
 
-## Run Petclinic locally
+## Propósito
 
-Spring Petclinic is a [Spring Boot](https://spring.io/guides/gs/spring-boot) application built using [Maven](https://spring.io/guides/gs/maven/) or [Gradle](https://spring.io/guides/gs/gradle/). You can build a jar file and run it from the command line (it should work just as well with Java 17 or newer):
+Este proyecto tiene como objetivo implementar un pipeline de integración continua para ejecutar pruebas automatizadas sobre la aplicación **Spring PetClinic**. El pipeline está diseñado para evaluar la calidad del software a través de varias etapas, asegurando que el sistema sea robusto, seguro y eficiente.
 
-```bash
-git clone https://github.com/spring-projects/spring-petclinic.git
-cd spring-petclinic
-./mvnw package
-java -jar target/*.jar
-```
+En cuanto a la aplicación a probar, **Spring PetClinic**, esta es una app de muestra creada con **Spring Boot** que sirve como un sistema de gestión para una clínica veterinaria. Incluye funcionalidades para registrar propietarios de mascotas, sus animales y visitas médicas.
 
-You can then access the Petclinic at <http://localhost:8080/>.
+## Instalación y Configuración del Pipeline CI/CD
 
-<img width="1042" alt="petclinic-screenshot" src="https://cloud.githubusercontent.com/assets/838318/19727082/2aee6d6c-9b8e-11e6-81fe-e889a5ddfded.png">
+El pipeline está diseñado para ejecutarse en Jenkins y automatizar las etapas clave del desarrollo del software. A continuación, se detallan los pasos para su instalación y configuración:
 
-Or you can run it from Maven directly using the Spring Boot Maven plugin. If you do this, it will pick up changes that you make in the project immediately (changes to Java source files require a compile as well - most people use an IDE for this):
+### Configuración de Jenkins
 
-```bash
-./mvnw spring-boot:run
-```
+1. **Instalación de Plugins**:
+   Asegúrate de que Jenkins tenga los siguientes plugins instalados:
+   - Pipeline: Permite definir y ejecutar pipelines.
+   - Git: Para clonar el repositorio del proyecto.
+   - Maven Integration: Para la construcción del proyecto utilizando Maven.
+   - Docker Pipeline: Para construir e implementar contenedores Docker.
+   - SonarQube Scanner: Necesario para la integración con SonarQube.
+   - JUnit Plugin: Para visualizar reportes de pruebas unitarias.
+   - HTML Publisher: Para publicar reportes generados como HTML (e.g., Selenium o ZAP).
+   - Performance Plugin: Para analizar y visualizar resultados de pruebas de rendimiento.
 
-> NOTE: If you prefer to use Gradle, you can build the app using `./gradlew build` and look for the jar file in `build/libs`.
+2. **Creación del Pipeline**:
+   - Crera un nuevo job de tipo "Pipeline" en Jenkins.
+   - En la sección "Pipeline Script":
 
-## Database configuration
+     ```groovy
+     pipeline {
+         agent any
+         stages {
+             stage('Build') {
+                 steps {
+                     sh 'mvn clean install'
+                 }
+             }
+             stage('Code Analysis') {
+                 steps {
+                     withSonarQubeEnv('SonarQube') {
+                         sh 'mvn sonar:sonar'
+                     }
+                 }
+             }
+             stage('Unit Tests') {
+                 steps {
+                     sh 'mvn test'
+                     junit '**/target/surefire-reports/*.xml'
+                 }
+             }
+             stage('Functional Tests') {
+                 steps {
+                     sh 'java -jar selenium-tests.jar'
+                 }
+             }
+             stage('Performance Tests') {
+                 steps {
+                     sh 'jmeter -n -t test.jmx -l results.jtl'
+                 }
+             }
+             stage('Security Tests') {
+                 steps {
+                     sh 'zap-baseline.py -t http://localhost:8080 -r report.html'
+                 }
+             }
+             stage('Deployment') {
+                 steps {
+                     sh 'docker build -t my-app .'
+                     sh 'docker run -d -p 8080:8080 my-app'
+                 }
+             }
+         }
+     }
+     ```
 
-In its default configuration, Petclinic uses an in-memory database (H2) which
-gets populated at startup with data. The h2 console is exposed at `http://localhost:8080/h2-console`,
-and it is possible to inspect the content of the database using the `jdbc:h2:mem:<uuid>` URL. The UUID is printed at startup to the console.
+## Tecnologías Utilizadas
 
-A similar setup is provided for MySQL and PostgreSQL if a persistent database configuration is needed. Note that whenever the database type changes, the app needs to run with a different profile: `spring.profiles.active=mysql` for MySQL or `spring.profiles.active=postgres` for PostgreSQL. See the [Spring Boot documentation](https://docs.spring.io/spring-boot/how-to/properties-and-configuration.html#howto.properties-and-configuration.set-active-spring-profiles) for more detail on how to set the active profile.
+- **Spring Boot**: Framework base de la aplicación PetClinic.
+- **Maven**: Herramienta de construcción.
+- **SonarQube**: Análisis estático de código.
+- **JUnit**: Marco para pruebas unitarias.
+- **Selenium**: Automatización de pruebas funcionales.
+- **JMeter**: Pruebas de rendimiento.
+- **OWASP ZAP**: Escáner de seguridad.
+- **Docker**: Contenerización de la aplicación.
 
-You can start MySQL or PostgreSQL locally with whatever installer works for your OS or use docker:
+## Ejecución del Pipeline
 
-```bash
-docker run -e MYSQL_USER=petclinic -e MYSQL_PASSWORD=petclinic -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=petclinic -p 3306:3306 mysql:9.1
-```
+El pipeline está definido en un archivo de configuración que incluye todos los pasos mencionados. Para ejecutarlo, se puede utilizar Jenkins u otra herramienta compatible con pipelines de CI/CD.
 
-or
+### Comandos Clave
 
-```bash
-docker run -e POSTGRES_USER=petclinic -e POSTGRES_PASSWORD=petclinic -e POSTGRES_DB=petclinic -p 5432:5432 postgres:17.0
-```
+- **Análisis del código**:
+  Realiza un análisis estático del código fuente utilizando SonarQube.
+  ```bash
+  mvn sonar:sonar
+  ```
+- **Pruebas unitarias**:
+  Ejecuta pruebas unitarias para verificar la funcionalidad de las clases y métodos.
+  ```bash
+  mvn test
+  ```
+- **Pruebas funcionales**:
+  Ejecuta pruebas funcionales que validan el comportamiento completo del sistema.
+  ```bash
+  java -jar selenium-tests.jar
+  ```
+- **Pruebas de rendimiento**:
+  Evalúa el desempeño del sistema bajo diferentes condiciones de carga.
+  ```bash
+  jmeter -n -t test.jmx -l results.jtl
+  ```
+- **Pruebas de seguridad**:
+  Identifica vulnerabilidades potenciales mediante OWASP ZAP.
+  ```bash
+  zap-baseline.py -t http://localhost:8080 -r report.html
+  ```
+- **Despliegue**:
+  Construye una imagen Docker e implementa la aplicación en un contenedor.
+  ```bash
+  docker build -t my-app .
+  docker run -d -p 8080:8080 my-app
+  ```bash
+  mvn clean install
+  ```
 
-Further documentation is provided for [MySQL](https://github.com/spring-projects/spring-petclinic/blob/main/src/main/resources/db/mysql/petclinic_db_setup_mysql.txt)
-and [PostgreSQL](https://github.com/spring-projects/spring-petclinic/blob/main/src/main/resources/db/postgres/petclinic_db_setup_postgres.txt).
+## Resultados del Análisis del Código
 
-Instead of vanilla `docker` you can also use the provided `docker-compose.yml` file to start the database containers. Each one has a service named after the Spring profile:
+El análisis de código realizado con SonarQube arrojó los siguientes resultados:
 
-```bash
-docker compose up mysql
-```
+- **Líneas de código**: 792
+- **Cobertura de pruebas**: 93.1% (272 líneas cubiertas).
+- **Duplicación de código**: 1.9% (sobre 1.7k líneas).
+- **Problemas de mantenibilidad**: 5 abiertos.
+- **Problemas de seguridad**: 0 abiertos.
+- **Fiabilidad**: 0 problemas abiertos.
 
-or
+## Resultados de las Pruebas Unitarias
 
-```bash
-docker compose up postgres
-```
-## Compiling the CSS
+Las pruebas unitarias realizadas con JUnit mostraron los siguientes resultados:
 
-There is a `petclinic.css` in `src/main/resources/static/resources/css`. It was generated from the `petclinic.scss` source, combined with the [Bootstrap](https://getbootstrap.com/) library. If you make changes to the `scss`, or upgrade Bootstrap, you will need to re-compile the CSS resources using the Maven profile "css", i.e. `./mvnw package -P css`. There is no build profile for Gradle to compile the CSS.
+- **Total de pruebas**: 69
+- **Errores**: 0
+- **Fallos**: 0
+- **Pruebas omitidas**: 0
+- **Tasa de éxito**: 100%
+- **Tiempo total**: 16.20 segundos
 
-## Working with Petclinic in your IDE
+### Cobertura de Pruebas Unitarias (JaCoCo)
 
-### Prerequisites
+| Paquete                                         | Cobertura Instrucciones | Cobertura Ramas |
+|------------------------------------------------|--------------------------|-----------------|
+| org.springframework.samples.petclinic.owner   | 94%                      | 88%             |
+| org.springframework.samples.petclinic         | 7%                       | N/A             |
+| org.springframework.samples.petclinic.system  | 53%                      | N/A             |
+| org.springframework.samples.petclinic.vet     | 100%                     | 100%            |
+| org.springframework.samples.petclinic.model   | 100%                     | 100%            |
+| **Total**                                      | **91%**                  | **89%**         |
 
-The following items should be installed in your system:
+## Resultados de las Pruebas Funcionales
 
-- Java 17 or newer (full JDK, not a JRE)
-- [Git command line tool](https://help.github.com/articles/set-up-git)
-- Your preferred IDE
-  - Eclipse with the m2e plugin. Note: when m2e is available, there is an m2 icon in `Help -> About` dialog. If m2e is
-  not there, follow the install process [here](https://www.eclipse.org/m2e/)
-  - [Spring Tools Suite](https://spring.io/tools) (STS)
-  - [IntelliJ IDEA](https://www.jetbrains.com/idea/)
-  - [VS Code](https://code.visualstudio.com)
+Las pruebas funcionales realizadas con Selenium arrojaron los siguientes resultados:
 
-### Steps
+- **Total de pruebas**: 6  
+- **Errores**: 0  
+- **Fallos**: 0  
+- **Pruebas omitidas**: 0  
+- **Tasa de éxito**: 100%  
+- **Tiempo total**: 16.32 segundos  
 
-1. On the command line run:
+### Detalle por Pruebas
 
-    ```bash
-    git clone https://github.com/spring-projects/spring-petclinic.git
-    ```
+| Nombre de Prueba                     | Errores | Fallos | Tiempo (s) |
+|--------------------------------------|---------|--------|------------|
+| Buscar Propietario                   | 0       | 0      | 1.041      |
+| Editar Propietario                   | 0       | 0      | 3.346      |
+| Agregar Visita                       | 0       | 0      | 2.915      |
+| Agregar Propietario                  | 0       | 0      | 2.523      |
+| Agregar Mascota                      | 0       | 0      | 4.000      |
+| Editar Mascota                       | 0       | 0      | 2.440      |
 
-1. Inside Eclipse or STS:
+## Resultados de las Pruebas de Rendimiento
 
-    Open the project via `File -> Import -> Maven -> Existing Maven project`, then select the root directory of the cloned repo.
+Las pruebas de rendimiento realizadas con JMeter arrojaron los siguientes resultados:
 
-    Then either build on the command line `./mvnw generate-resources` or use the Eclipse launcher (right-click on project and `Run As -> Maven install`) to generate the CSS. Run the application's main method by right-clicking on it and choosing `Run As -> Java Application`.
+- **Total de muestras**: 75,000  
+- **Errores**: 0 (0.00%)  
+- **Tiempo promedio de respuesta**: 4807.56 ms  
+- **Tiempo máximo de respuesta**: 23,491 ms  
+- **Tiempo mínimo de respuesta**: 1 ms  
 
-1. Inside IntelliJ IDEA:
+### Detalle por Pruebas
 
-    In the main menu, choose `File -> Open` and select the Petclinic [pom.xml](pom.xml). Click on the `Open` button.
+| Etiqueta de Prueba        | Tiempo Promedio (ms) | Tiempo Mínimo (ms) | Tiempo Máximo (ms) | Errores (%) |
+|---------------------------|----------------------|---------------------|---------------------|-------------|
+| CSS                       | 2602.69             | 1                   | 4934               | 0.00%       |
+| Editar Propietario        | 4231.04             | 63                  | 11,398             | 0.00%       |
+| Buscar Propietario        | 2564.57             | 1                   | 4936               | 0.00%       |
+| Buscar con Apellido Vacío| 5555.51             | 33                  | 15,940             | 0.00%       |
+| Página Principal         | 2654.20             | 1                   | 4890               | 0.00%       |
+| JavaScript                | 2564.66             | 1                   | 4937               | 0.00%       |
+| Nuevo Propietario         | 8181.66             | 632                 | 21,750             | 0.00%       |
+| Nueva Visita              | 4998.00             | 642                 | 12,887             | 0.00%       |
+| POST Editar Propietario   | 4191.53             | 34                  | 11,942             | 0.00%       |
+| POST Nuevo Propietario    | 8608.84             | 217                 | 23,346             | 0.00%       |
+| POST Nueva Visita         | 8912.60             | 200                 | 23,491             | 0.00%       |
 
-    - CSS files are generated from the Maven build. You can build them on the command line `./mvnw generate-resources` or right-click on the `spring-petclinic` project then `Maven -> Generates sources and Update Folders`.
+## Resultados de las Pruebas de Seguridad
 
-    - A run configuration named `PetClinicApplication` should have been created for you if you're using a recent Ultimate version. Otherwise, run the application by right-clicking on the `PetClinicApplication` main class and choosing `Run 'PetClinicApplication'`.
+Las pruebas de seguridad realizadas con OWASP ZAP arrjaron los siguientes hallazgos:
 
-1. Navigate to the Petclinic
+- **Alertas de nivel alto**: 0  
+- **Alertas de nivel medio**: 4  
+- **Alertas de nivel bajo**: 4  
+- **Alertas informativas**: 3  
 
-    Visit [http://localhost:8080](http://localhost:8080) in your browser.
+### Detalle de Alertas
 
-## Looking for something in particular?
+| Nivel de Riesgo   | Descripción                                              | Instancias |
+|-------------------|----------------------------------------------------------|------------|
+| Medio            | Ausencia de Tokens Anti-CSRF                             | 1          |
+| Medio            | Cabecera Content Security Policy (CSP) no configurada    | 8          |
+| Medio            | Falta de cabecera Anti-Clickjacking                      | 8          |
+| Medio            | Fuga de información de Spring Actuator                   | 1          |
+| Bajo             | Divulgación de Información - Mensajes de Error de Depuración | 1          |
+| Bajo             | Divulgación de error de aplicación                      | 1          |
+| Bajo             | Falta encabezado X-Content-Type-Options                  | 14         |
+| Bajo             | Inclusión de archivos fuente JavaScript entre dominios   | 16         |
+| Informativo      | Atributo de elemento HTML controlable por el usuario (XSS potencial) | 7 |
+| Informativo      | Divulgación de información - Comentarios sospechosos     | 1          |
+| Informativo      | Librería JS Vulnerable                                   | 1          |
 
-|Spring Boot Configuration | Class or Java property files  |
-|--------------------------|---|
-|The Main Class | [PetClinicApplication](https://github.com/spring-projects/spring-petclinic/blob/main/src/main/java/org/springframework/samples/petclinic/PetClinicApplication.java) |
-|Properties Files | [application.properties](https://github.com/spring-projects/spring-petclinic/blob/main/src/main/resources) |
-|Caching | [CacheConfiguration](https://github.com/spring-projects/spring-petclinic/blob/main/src/main/java/org/springframework/samples/petclinic/system/CacheConfiguration.java) |
+
+## Autores
+
+- Grupo 5, Curso: Verificación y Validación de Software:
+  
+	- Cjuro Apaza, Jimmy Cristhian	
+	- Espinoza Carlos, Diego Sebastian	
+	- Espinoza Fabion, Josue Marcelo	
+	- Hinostroza Quispe, Gianlucas Amed	
+	- Ipanaque Pazo, Jorge Paul
+  - León Robles, Illary Marcelo
+
